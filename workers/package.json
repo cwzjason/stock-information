@@ -1,0 +1,12 @@
+{
+  "name": "us-market-monitor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.60.0"
+  }
+}

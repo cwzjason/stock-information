@@ -1,0 +1,60 @@
+# ============================================================
+#  Cloudflare Workers 配置
+#  部署前：把 database_id 换成 `npx wrangler d1 create us_monitor` 输出的 id
+#  密钥：npx wrangler secret put WECOM_WEBHOOK_URL
+# ============================================================
+name = "us-market-monitor"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+
+# 每分钟触发一次（UTC 时间）
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "us_monitor"
+database_id = "c558ea41-1d67-4218-a58f-776fd172d0a2"
+
+[vars]
+# ---------- 数据源 ----------
+# 华尔街见闻频道：默认只留美股（想看港股快讯就加回 hk-stock-channel）
+WALLSTREET_CHANNELS = "us-stock-channel"
+
+# SEC 文件类型；想彻底不推 SEC 披露，把这项改成空字符串 ""
+SEC_FORM_TYPES = "8-K,6-K,SC 13D,SC 13G,425"
+SEC_USER_AGENT = "USStockMonitor/1.0 (cwz20030609@gmail.com)"
+SEC_PER_TYPE = "15"
+
+# ---------- 过滤 ----------
+# SEC 观察名单：只有这些公司的披露才推（公司名包含匹配，小写）。
+# 留空则不过滤（会推几百家陌生公司的披露，不推荐）
+SEC_WATCH_COMPANIES = "apple,nvidia,tesla,microsoft,amd,intel,micron,broadcom,netflix,meta platforms,amazon,alphabet,google,coinbase,palantir,super micro,arm holdings,uber,shopify,disney,boeing,caterpillar,walmart,costco,starbucks,nike,jpmorgan,bank of america,ford,general motors,pfizer,moderna,taiwan semiconductor,tsmc,alibaba,baidu,jd.com,pdd,li auto,xpeng,nio"
+
+# 自定义关注词：命中就当"重要"推送，比如填 "英伟达,特斯拉,台积电,美联储"
+WATCH_KEYWORDS = ""
+
+# A 层核心：只有 WDC。财报/指引/并购/监管/人事 = 重大，立刻推
+# 中英文都写、小写；换名单只改这一行
+CORE_COMPANIES = "wdc,western digital,西部数据"
+
+# B 层持仓（其余 ~106 只）和 C 层主题写在 src/index.js 的 HOLDINGS_DEFAULT / THEME_DEFAULT
+# 想在这里覆盖也可以（逗号分隔、小写），留空则用代码里的默认名单
+HOLDINGS = ""
+THEME_KEYWORDS = ""
+
+# 关注行业关键词：命中即"关注行业"相关性（存储 / 半导体 / 数据中心）
+# 必须中英文都写！原来只写了中文，导致英文源（PR Newswire / SEC / NVIDIA）里的
+# "Semiconductor" 全部匹配不上、被当成不相关丢掉 —— 你关注的行业在英文源里等于瞎了。
+# 注意别写裸词 "chip"：会误伤 Chipotle（Chipotle 含 chip 子串），改用 chipmaker/chips 等。
+SECTOR_KEYWORDS = "存储,nand,dram,hdd,硬盘,固态硬盘,ssd,hbm,闪存,内存,半导体,晶圆,芯片,数据中心,存储芯片,semiconductor,semiconductors,wafer,foundry,chipmaker,chip maker,chip stocks,chips,memory chip,memory chips,flash memory,solid state drive,data center,datacenter,hyperscale"
+
+# ---------- 推送与汇总 ----------
+# 单轮最多推几条（双群双发，每条约 2 个子请求；免费版单次调用上限 50）
+MAX_PUSH_PER_RUN = "12"
+# 定时汇总（美东时间）：每天 07:00 ET 发隔夜+盘前速览；周日 19:00 ET 发周末速览
+DAILY_DIGEST_HOUR = "7"
+WEEKEND_DIGEST_HOUR = "19"
+
+# 手动触发 /run 时可选的简单口令：npx wrangler secret put RUN_TOKEN
+# 未设置则 /run 完全开放

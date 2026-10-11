@@ -1,0 +1,26 @@
+# Node / Cloudflare Wrangler
+node_modules/
+.wrangler/
+dist/
+
+# 密钥：Webhook 与 RUN_TOKEN 都存在 Cloudflare 侧（wrangler secret），本地不留明文。
+# 曾经有 .secret_tmp.txt 把企业微信 webhook（含 key）明文写在本地，已删除并在此封死。
+.env
+.env.*
+!.env.example
+.secret_tmp.txt
+*secret_tmp*
+
+# 日志
+*.log
+
+# Python 遗留（已停用，规则保留以防目录重建）
+__pycache__/
+*.pyc
+backend/dedup_cache.json
+backend/logs/
+
+# 编辑器 / 系统
+.vscode/
+.DS_Store
+Thumbs.db
